@@ -1,0 +1,140 @@
+
+//#include <ArduinoOTA.h>
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
+
+const char* ssid =  "potato2G";  // "illifamily2G"; //"iptime2.4GHz-JHS";
+const char* password = "Rkawkxnlrla1"; // "illikim575859"; // "ace2022^!";
+
+const char* mqtt_server =    "192.168.0.3"; //"tcp://192.168.43.202"; //"114.205.87.39";
+const int mqtt_server_port =   1883;  // 1001; //1883;
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+//const int ledGPIO5 = 0;
+//const int PWM1 = 2;
+
+void setup_wifi() {
+  delay(10);
+  Serial.println();
+  WiFi.disconnect(true);
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  Serial.println("Wifi begin called");
+  delay(100);
+  WiFi.begin(ssid, password);
+
+  Serial.println("Wifi begin ended");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.print("WiFi connected - ESP IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+void callback(String topic, byte* message, unsigned int length) {
+  
+  Serial.print("Message arrived on topic: ");
+  Serial.print(topic);
+  Serial.print(". Message: ");
+  String messageTemp;
+
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)message[i]);
+    messageTemp += (char)message[i];
+  }
+  Serial.println();
+
+  if (topic == "esp8266/function/Lamp") {
+    Lamp_Control(messageTemp);
+  }
+  if (topic == "esp8266/function/Motor") {
+    Motor_Control(messageTemp);
+  }
+  if (topic == "esp8266/function/LED") {
+    LEDPWM_Control(messageTemp);
+  }
+  
+  Serial.println();
+  messageTemp = ""; //MT 초기화
+}
+
+
+void reconnect() {
+  // Loop until we're reconnected
+  while (!client.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    // Attempt to connect
+
+    if (client.connect("ESP8266Client2")) {
+      Serial.println("connected");
+      client.subscribe("esp8266/function/Lamp");
+      client.subscribe("esp8266/function/Motor");
+      client.subscribe("esp8266/function/LED");
+      client.publish("esp8266/text", "Welcome Smart Home");
+      client.subscribe("esp8266/read");
+
+
+    }
+    else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      delay(5000);
+    }
+  }
+}
+
+
+void setup() {
+  pinMode(ledGPIO5, OUTPUT);
+  pinMode(PWM1, OUTPUT);
+  digitalWrite(ledGPIO5,HIGH);
+  digitalWrite(PWM1,HIGH);
+  Serial.begin(9600);
+  Serial.print("Powered on");
+  setup_wifi();
+  //mySerial.begin(9600);
+  client.setServer(mqtt_server, mqtt_server_port);
+  client.setCallback(callback);
+
+}
+
+void loop() {
+  if (!client.connected()) {
+    reconnect();
+  }
+  if (!client.loop()) {
+
+    client.connect("ESP8266Client2");
+  }
+}
+
+String Lamp_Control(String messageTemp) {
+  Serial.println("LAMP On Off Control");
+  if (messageTemp == "1") {
+    Serial.print("On");
+    digitalWrite(ledGPIO5, LOW); //led D1
+    return "LED ON";
+  }// 형광등 제어
+  else if (messageTemp == "3") {
+   
+    Serial.print("Off");
+    digitalWrite(ledGPIO5, HIGH); //led D1
+    return "LED OFF";
+  }
+}
+
+String Motor_Control(String messageTemp) {
+  ;
+}
+
+String LEDPWM_Control(String SDuty) {
+  int Duty = atoi(SDuty.c_str());
+  Serial.print("\n Duty : ");
+  Serial.println(Duty);
+  analogWrite(PWM1, Duty * 100);
+}
