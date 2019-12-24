@@ -109,18 +109,22 @@ void Tab_Control(String messageTemp) {
   if (messageTemp == "T1on") {
     stat |= 0b01;
     client.publish("8266/Multitab/Response", "T1 On");
+    digitalWrite(T1,LOW);
     }
   else if (messageTemp == "T1off") {
     stat &= 0b10;
     client.publish("8266/Multitab/Response", "T1 Off");
+    digitalWrite(T1,HIGH);
     }
   else if (messageTemp == "T2on") {
     stat |= 0b10;
     client.publish("8266/Multitab/Response", "T2 On");
+    digitalWrite(T2,LOW);
     }
   else if (messageTemp == "T2off") {
     stat &= 0b01;
     client.publish("8266/Multitab/Response", "T2 Off");
+    digitalWrite(T2,HIGH);
     }
   
 }
